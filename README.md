@@ -4,9 +4,11 @@ Simple control sketch for motor-shutters (aka "Rollladen" in german). Arduino + 
 
 # usage
 
-This is for 2 shutters (and a 10W LED light). It reacts on GET to http://<IP>:8089/<cmd> where cmd can be: roll1-open roll1-close roll2-open roll2-close led-on led-off
+This is for 3 motorshutters (and a 10W LED light). It reacts on GET to http://<IP>:8089/-<cmd> where cmd can be: roll1-open roll1-close roll2-open roll2-close roll3-open roll3-close led-on led-off. Example call:
 
-Do not forget to adjust ip+mac as these are mine ;)
+    curl http://172.16.66.21:8089/-roll1-open
+
+*Do not forget to adjust ip+mac as these are mine ;)*
 
 # license
 

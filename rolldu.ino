@@ -1,30 +1,31 @@
 #include <SPI.h>
-#include <Client.h>
 #include <Ethernet.h>
-#include <Server.h>
-#include <Udp.h>
 
 // * Ethernet shield attached to pins 10, 11, 12, 13
 
 // CHANGE!!!!
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0x21, 0x62 };
-byte ip[] = { 172,16,66,221 };
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0x11, 0x12 };
+byte ip[] = { 172,16,66,21 };
 
+// port 8089, 
+EthernetServer server = EthernetServer(8089);
 
-Server server(8089);
-
-// 5 relays:  2 for each motor (on/off,reverse) + 1 for an external LED lamp
+// 7 relays:  2 for each motor (on/off,reverse) + 1 for an external LED lamp
 
 const int roll1MainPin = 2;
 const int roll1ReversePin = 3;
 const int roll2MainPin = 4;
 const int roll2ReversePin = 5;
 const int ledLampPin = 6;
+// unused 7
+const int roll3MainPin = 8;
+const int roll3ReversePin = 9;
 
 // max time to keep output enabled
 const long timeout = 40000;
 long roll1Start = 0;
 long roll2Start = 0;
+long roll3Start = 0;
 
 void setup()
 {
@@ -36,11 +37,10 @@ void setup()
   pinMode(roll2MainPin, OUTPUT);
   pinMode(roll2ReversePin, OUTPUT);
   pinMode(ledLampPin, OUTPUT);
-
-  pinMode(7, OUTPUT);
-  pinMode(8, OUTPUT);
-  pinMode(9, OUTPUT);
-
+  pinMode(7, OUTPUT); // unused
+  pinMode(roll3MainPin, OUTPUT);
+  pinMode(roll3ReversePin, OUTPUT);
+  
   Ethernet.begin(mac, ip);
   delay(200); // wait for ethernet
   server.begin(); 
@@ -65,10 +65,15 @@ void loop()
     roll_stop(roll2MainPin, roll2ReversePin);
     roll2Start = 0;
   }
+  if (roll3Start > 0 && currentMillis - roll3Start > timeout) {
+    Serial.println("roll3 timeout");
+    roll_stop(roll3MainPin, roll3ReversePin);
+    roll3Start = 0;
+  }
 
   // the server loop
 
-  Client client = server.available();
+  EthernetClient client = server.available();
   if (client) {
     while (client.connected()) {
       if (client.available()) {
@@ -154,6 +159,24 @@ boolean handleCommand(String readString) {
         Serial.println("roll2 open");
         roll_open(roll2MainPin, roll2ReversePin);
         roll2Start = currentMillis;
+      }
+    }
+  }  
+  
+  else if (actuator == "roll3") {
+    if (roll3Start > 0) {
+        Serial.println("roll3 stop");
+        roll_stop(roll3MainPin, roll3ReversePin);      
+        roll3Start = 0;
+    } else {
+      if (command == "close") {
+        Serial.println("roll3 close");
+        roll_close(roll3MainPin, roll3ReversePin);
+        roll3Start = currentMillis;
+      } else {                
+        Serial.println("roll3 open");
+        roll_open(roll3MainPin, roll3ReversePin);
+        roll3Start = currentMillis;
       }
     }
   }  
