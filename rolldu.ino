@@ -1,5 +1,6 @@
 #include <SPI.h>
 #include <Ethernet.h>
+#include <avr/wdt.h>
 
 // * Ethernet shield attached to pins 10, 11, 12, 13
 
@@ -23,14 +24,20 @@ const int roll3ReversePin = 9;
 
 // max time to keep output enabled
 const long timeout = 40000;
-long roll1Start = 0;
-long roll2Start = 0;
-long roll3Start = 0;
+
+unsigned long roll1Start = 0;
+unsigned long roll2Start = 0;
+unsigned long roll3Start = 0;
+unsigned long currentMillis = 0;
+unsigned long oldMillis = 0;
+String readString = "";
+
 
 void setup()
 {
-  delay(1000);
+  delay(1000); // wait for ethernet shield
   Serial.begin(9600);
+  wdt_enable(WDTO_4S);
 
   pinMode(roll1MainPin, OUTPUT);
   pinMode(roll1ReversePin, OUTPUT);
@@ -42,16 +49,25 @@ void setup()
   pinMode(roll3ReversePin, OUTPUT);
   
   Ethernet.begin(mac, ip);
-  delay(200); // wait for ethernet
   server.begin(); 
-  delay(200); // wait for ethernet
   Serial.print("start");
 }
 
 void loop()
 {
-  unsigned long currentMillis = millis();
-  String readString = "";  
+  currentMillis = millis();
+  readString = "";  
+
+  // watchdog reset every second
+  if (currentMillis >= oldMillis + 1000) {
+    Serial.println("beep");
+    Serial.println(Ethernet.localIP());
+    oldMillis = currentMillis;    
+    // ethernet shield still available ?
+    if (Ethernet.localIP() == ip) {
+      wdt_reset();
+    }
+  }
   
   // motor stops automatically. This is only to reset relays
 
